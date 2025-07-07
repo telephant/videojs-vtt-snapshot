@@ -1,6 +1,6 @@
 {
   "name": "videojs-vtt-snapshot",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Video.js plugin for displaying thumbnails from VTT files when hovering over the progress bar",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -33,6 +33,11 @@
   "peerDependencies": {
     "video.js": "^8.0.0"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/telephant/videojs-vtt-snapshot"
+  },
+  "homepage": "https://github.com/telephant/videojs-vtt-snapshot",
   "devDependencies": {
     "@types/express": "^5.0.3",
     "@types/video.js": "^7.3.58",
