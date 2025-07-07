@@ -34,6 +34,30 @@ yarn add videojs-vtt-snapshot
       }
     }
   });
+
+  player.ready(function() {
+    const instance = player.vttSnapshot({
+      vttUrl: 'path/to/thumbnails.vtt'
+      snapshotClass: 'vjs-vtt-snapshot',
+      snapshotStyle: {
+        border: '2px solid white'
+      },
+      beforeHovering: (data) => {
+        return data;
+      },
+      onHover: (data) => {
+      },
+      onLeave: () => {
+      }
+    });
+
+    // Wait for the plugin to be ready
+    instance.ready().then(() => {
+      console.log('Plugin instance is ready:', instance);
+    }).catch(error => {
+      console.error('Error initializing plugin:', error);
+    });
+  });
 </script>
 ```
 

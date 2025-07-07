@@ -4,6 +4,7 @@ import videojs from 'video.js';
 import type Player from 'video.js/dist/types/player';
 import { VideojsVttSnapshot } from './videojs-vtt-snapshot';
 import type { VideojsVttSnapshotOptions } from './interface';
+export * from './interface';
 
 // Create a plugin class that extends Video.js's base plugin
 class VttSnapshotPlugin {
