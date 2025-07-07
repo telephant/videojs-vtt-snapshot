@@ -31,6 +31,8 @@ export class VideojsVttSnapshot {
   private cues: VTTCue[] = [];
   private snapshotElement: HTMLElement | null = null;
   private initPromise: Promise<void>;
+  private rafPending: number | null = null;
+  private lastMouseEvent: { event: MouseEvent; barRect: DOMRect } | null = null;
 
   constructor(player: Player, options: VideojsVttSnapshotOptions) {
     this.player = player;
@@ -154,6 +156,29 @@ export class VideojsVttSnapshot {
 
     const barRect = progressControl.el().getBoundingClientRect();
     
+    // Store the latest mouse event
+    this.lastMouseEvent = { event, barRect };
+
+    // Schedule an update if one isn't already pending
+    if (this.rafPending === null) {
+      this.rafPending = requestAnimationFrame(() => this.updateSnapshot());
+    }
+  }
+
+  private updateSnapshot(): void {
+    // Clear the pending flag
+    this.rafPending = null;
+
+    // If there's no last mouse event, return
+    if (!this.lastMouseEvent) return;
+
+    const { event, barRect } = this.lastMouseEvent;
+    const controlBar = (this.player as any).controlBar as VideoJSControlBar;
+    if (!controlBar?.progressControl) return;
+
+    const progressControl = controlBar.progressControl;
+    if (!this.isValidProgressControl(progressControl)) return;
+    
     // Use seekBar's calculateDistance to get the time directly
     const seekBar = progressControl.seekBar;
     const percent = seekBar.calculateDistance(event);
@@ -193,23 +218,39 @@ export class VideojsVttSnapshot {
   private findClosestCue(time: number): VTTCue | null {
     if (!this.cues.length) return null;
 
-    // Get the total video duration
     const duration = this.player.duration();
     if (!duration) return null;
 
-    // Calculate the segment size (duration / number of cues)
-    const segmentSize = duration / this.cues.length;
+    for (const cue of this.cues) {
+      if (time >= cue.startTime && time < cue.endTime) {
+        return cue;
+      }
+    }
 
-    // Find which segment the time falls into
-    const segmentIndex = Math.min(
-      Math.floor(time / segmentSize),
-      this.cues.length - 1
-    );
+    // fallback: closest cue
+    let closestCue = this.cues[0];
+    let minDistance = Math.abs(time - (closestCue.startTime + closestCue.endTime) / 2);
 
-    return this.cues[segmentIndex];
+    for (let i = 1; i < this.cues.length; i++) {
+      const cue = this.cues[i];
+      const cueCenter = (cue.startTime + cue.endTime) / 2;
+      const distance = Math.abs(time - cueCenter);
+      
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestCue = cue;
+      }
+    }
+    return closestCue;
   }
 
   private handleMouseLeave(): void {
+    // Cancel any pending animation frame
+    if (this.rafPending !== null) {
+      cancelAnimationFrame(this.rafPending);
+      this.rafPending = null;
+    }
+    this.lastMouseEvent = null;
     this.hideSnapshot();
     if (this.options.onLeave) {
       this.options.onLeave();
@@ -262,9 +303,10 @@ export class VideojsVttSnapshot {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = Math.floor(seconds % 60);
-    const ms = Math.floor((seconds % 1) * 1000);
     
-    return `${hours > 0 ? hours + ':' : ''}${pad(minutes)}:${pad(secs)}.${ms.toString().padStart(3, '0')}`;
+    return hours > 0
+      ? `${pad(hours)}:${pad(minutes)}:${pad(secs)}`
+      : `${pad(minutes)}:${pad(secs)}`;
   }
 
   // Public method to dispose the plugin
@@ -273,4 +315,4 @@ export class VideojsVttSnapshot {
       this.snapshotElement.parentNode.removeChild(this.snapshotElement);
     }
   }
-} 
+}

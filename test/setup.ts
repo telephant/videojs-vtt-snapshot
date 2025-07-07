@@ -11,9 +11,12 @@ sprite_001.jpg#xywh=0,0,160,90
 
 00:00:05.000 --> 00:00:10.000
 sprite_001.jpg#xywh=160,0,160,90
+
+00:00:10.000 --> 00:00:15.000
+sprite_001.jpg#xywh=320,0,160,90
 `;
 
-export function createMockPlayer() {
+export function createMockPlayer(duration: number = 100) {
   const mockPlayerEl = document.createElement('div');
   mockPlayerEl.className = 'video-js';
   mockPlayerEl.getBoundingClientRect = vi.fn(() => ({
@@ -33,6 +36,17 @@ export function createMockPlayer() {
   // Create shared DOM elements
   const seekBarEl = document.createElement('div');
   seekBarEl.className = 'vjs-seek-bar';
+  seekBarEl.getBoundingClientRect = vi.fn(() => ({
+    left: 0,
+    top: 0,
+    width: 400,
+    height: 40,
+    right: 400,
+    bottom: 40,
+    x: 0,
+    y: 0,
+    toJSON: () => {},
+  }));
 
   // Allow attaching event listeners
   seekBarEl.addEventListener = vi.fn((event: string, handler: EventListener) => {
@@ -41,7 +55,10 @@ export function createMockPlayer() {
 
   const mockSeekBar = {
     el: vi.fn(() => seekBarEl),
-    calculateDistance: vi.fn(() => 0.5)
+    calculateDistance: vi.fn((event: MouseEvent) => {
+      const rect = seekBarEl.getBoundingClientRect();
+      return Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+    })
   };
 
   const progressControlEl = document.createElement('div');
@@ -60,7 +77,7 @@ export function createMockPlayer() {
   const mockPlayer = {
     el: vi.fn(() => mockPlayerEl),
     controlBar: mockControlBar as any,
-    duration: vi.fn(() => 100),
+    duration: vi.fn(() => duration),
     ready: vi.fn(cb => cb()),
     one: vi.fn((event: string, handler: EventListener) => {
       eventHandlers[event] = handler;

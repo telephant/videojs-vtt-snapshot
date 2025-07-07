@@ -6,16 +6,31 @@ import { VideojsVttSnapshot } from './videojs-vtt-snapshot';
 
 describe('VttSnapshot Plugin', () => {
   let mocks: ReturnType<typeof createMockPlayer>;
+  let rafCallback: FrameRequestCallback | null = null;
+
+  // Mock requestAnimationFrame
+  const mockRaf = (callback: FrameRequestCallback): number => {
+    rafCallback = callback;
+    return 1;
+  };
+
+  // Helper to flush RAF updates
+  const flushRaf = () => {
+    if (rafCallback) {
+      rafCallback(performance.now());
+      rafCallback = null;
+    }
+  };
 
   beforeEach(() => {
-    mocks = createMockPlayer();
-
+    mocks = createMockPlayer(15);
     global.fetch = getMockFetch();
-
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation(mockRaf);
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    rafCallback = null;
   });
 
   it('should register the plugin with Video.js', () => {
@@ -46,6 +61,9 @@ describe('VttSnapshot Plugin', () => {
     });
     mocks.eventHandlers['mousemove']?.(mockEvent);
 
+    // Flush RAF updates
+    flushRaf();
+
     // Verify the snapshot element was created and is visible
     const snapshotElement = mocks.mockPlayerEl.querySelector('.vjs-vtt-snapshot') as HTMLElement;
     expect(snapshotElement).toBeDefined();
@@ -67,6 +85,7 @@ describe('VttSnapshot Plugin', () => {
       clientY: 20
     });
     mocks.eventHandlers['mousemove']?.(moveEvent);
+    flushRaf();
 
     // Then trigger mouse leave
     const leaveEvent = new MouseEvent('mouseleave');
@@ -96,6 +115,7 @@ describe('VttSnapshot Plugin', () => {
       clientY: 20
     });
     mocks.eventHandlers['mousemove']?.(mockEvent);
+    flushRaf();
 
     expect(beforeHovering).toHaveBeenCalledWith(expect.objectContaining({
       time: expect.any(Number),
@@ -139,6 +159,7 @@ describe('VttSnapshot Plugin', () => {
       clientY: 20
     });
     mocks.eventHandlers['mousemove']?.(mockEvent);
+    flushRaf();
 
     // Should not show snapshot for invalid VTT
     const snapshotElement = mocks.mockPlayerEl.querySelector('.vjs-vtt-snapshot') as HTMLElement;
@@ -197,6 +218,7 @@ describe('VttSnapshot Plugin', () => {
         clientY: 20
       });
       mocks.eventHandlers['mousemove']?.(mockEvent);
+      flushRaf();
 
       const snapshotElement = mocks.mockPlayerEl.querySelector('.vjs-vtt-snapshot') as HTMLElement;
       expect(snapshotElement).toBeDefined();
@@ -223,6 +245,7 @@ describe('VttSnapshot Plugin', () => {
       clientY: 20
     });
     mocks.eventHandlers['mousemove']?.(mockEvent);
+    flushRaf();
 
     const snapshotElement = mocks.mockPlayerEl.querySelector('.vjs-vtt-snapshot') as HTMLElement;
     expect(snapshotElement.style.border).toBe(customStyle.border);
@@ -248,7 +271,7 @@ sprite.jpg
         ok: true,
         status: 200,
         text: () => Promise.resolve(customVttContent)
-      } as Response)
+      })
     );
 
     const plugin = new VideojsVttSnapshot(mocks.mockPlayer, {
@@ -257,31 +280,40 @@ sprite.jpg
 
     await plugin.ready();
 
-    // Test with time in the third cue (which has no coordinates)
-    const mockEvent = new MouseEvent('mousemove', {
-      clientX: 300, // 75% of duration = 12.5 seconds
-      clientY: 20
-    });
-    mocks.eventHandlers['mousemove']?.(mockEvent);
+    // Test each format
+    const positions = [
+      { x: 0, time: 0 },    // First cue
+      { x: 200, time: 7.5 }, // Second cue
+      { x: 400, time: 15 }   // Third cue
+    ];
 
-    const snapshotElement = mocks.mockPlayerEl.querySelector('.vjs-vtt-snapshot') as HTMLElement;
-    expect(snapshotElement).toBeDefined();
-    expect(snapshotElement.style.display).not.toBe('none');
+    for (const { x, time } of positions) {
+      const mockEvent = new MouseEvent('mousemove', {
+        clientX: x,
+        clientY: 20
+      });
+      mocks.eventHandlers['mousemove']?.(mockEvent);
+      flushRaf();
+
+      const snapshotElement = mocks.mockPlayerEl.querySelector('.vjs-vtt-snapshot') as HTMLElement;
+      expect(snapshotElement).toBeDefined();
+      expect(snapshotElement.style.display).not.toBe('none');
+    }
   });
 
   it('should select correct sprite position based on time', async () => {
     // Mock a VTT file with multiple sprite positions
     const customVttContent = `WEBVTT
 
-00:00:00.000 --> 00:00:05.000
-sprite.jpg#xywh=0,0,160,90
+      00:00:00.000 --> 00:00:05.000
+      sprite.jpg#xywh=0,0,160,90
 
-00:00:05.000 --> 00:00:10.000
-sprite.jpg#xywh=160,0,160,90
+      00:00:05.000 --> 00:00:10.000
+      sprite.jpg#xywh=160,0,160,90
 
-00:00:10.000 --> 00:00:15.000
-sprite.jpg#xywh=320,0,160,90
-`;
+      00:00:10.000 --> 00:00:15.000
+      sprite.jpg#xywh=320,0,160,90
+      `;
 
     global.fetch = vi.fn().mockImplementation(() => 
       Promise.resolve({
@@ -326,8 +358,8 @@ sprite.jpg#xywh=320,0,160,90
         clientY: testCase.position.y
       });
       mocks.eventHandlers['mousemove']?.(mockEvent);
+      flushRaf();
 
-      // Get the snapshot element and verify its background position
       const snapshotElement = mocks.mockPlayerEl.querySelector('.vjs-vtt-snapshot') as HTMLElement;
       expect(snapshotElement).toBeDefined();
       expect(snapshotElement.style.display).not.toBe('none');
