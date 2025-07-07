@@ -2,15 +2,15 @@
   "name": "videojs-vtt-snapshot",
   "version": "1.0.0",
   "description": "Video.js plugin for displaying thumbnails from VTT files when hovering over the progress bar",
-  "main": "dist/index.js",
-  "module": "dist/index.mjs",
+  "main": "dist/index.global.js",
+  "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsup",
+    "build": "NODE_ENV=production tsup --minify",
     "dev": "concurrently \"tsup --watch\" \"node example/server.js\"",
     "lint": "eslint src",
     "prepare": "pnpm build",
@@ -23,7 +23,9 @@
     "videojs-plugin",
     "thumbnails",
     "vtt",
-    "preview"
+    "preview",
+    "snapshot",
+    "hover"
   ],
   "author": "",
   "license": "MIT",
