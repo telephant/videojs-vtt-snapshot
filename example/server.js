@@ -16,6 +16,7 @@ app.use('/dist', express.static(join(__dirname, '../dist')));
 
 // Serve the index.html
 app.get('/', (req, res) => {
+  console.log('Serving index.html');
   res.sendFile(join(__dirname, 'index.html'));
 });
 

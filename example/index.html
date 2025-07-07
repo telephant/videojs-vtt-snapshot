@@ -23,12 +23,17 @@
 </head>
 <body>
   <video id="my-video" class="video-js" controls preload="auto" width="640" height="264">
-    <source src="https://matrx-work01.obs.ae-ad-1.g42cloud.com:443/cst-vod-server/12345678/1/81724eb8-b34b-42cd-98fd-b9b864775ce0/b8a32243-70ac-4311-837b-06062944a1f1.mp4?AccessKeyId=3QZDMDFM5AIZJ8NVNT0P&Expires=1767179691&Signature=gjOCLvTQIjtQ6JRGv3MqpmmILrs%3D" type="video/mp4">
+    <source src="video.mp4" type="video/mp4">
   </video>
 
   <script src="https://unpkg.com/video.js/dist/video.min.js"></script>
   <script src="../dist/index.global.js"></script>
   <script>
+    // Log videojs version and available plugins before initialization
+    console.log('Video.js version:', videojs.VERSION);
+    console.log('Initial plugins:', videojs.getPlugins());
+    console.log('Initial vttSnapshot plugin:', videojs.getPlugin('vttSnapshot'));
+
     // Initialize the player
     const player = videojs('my-video', {
       controls: true,
@@ -38,24 +43,20 @@
     // Wait for the player to be ready
     player.ready(function() {
       console.log('Player is ready');
-      console.log('Available plugins:', videojs.getPlugins());
+      console.log('Available plugins after ready:', videojs.getPlugins());
+      console.log('vttSnapshot plugin after ready:', videojs.getPlugin('vttSnapshot'));
+      console.log('player.vttSnapshot type:', typeof player.vttSnapshot);
 
       // Initialize the plugin
-      const snapshot = player.vttSnapshot({
+      const instance = player.vttSnapshot({
         vttUrl: './thumbnails.vtt',
         snapshotClass: 'vjs-vtt-snapshot',
         snapshotStyle: {
           border: '2px solid white'
         },
         beforeHovering: (data) => {
-          return {
-            time: data.time,
-            src:'https://matrx-work01.obs.ae-ad-1.g42cloud.com:443/cst-vod-server/12345678/1/81724eb8-b34b-42cd-98fd-b9b864775ce0/sprite_001.jpg?AccessKeyId=3QZDMDFM5AIZJ8NVNT0P&Expires=1767179718&Signature=M3VOUbgAlvq0NAoqhT36NUGwCfQ%3D',
-            x: data.x,
-            y: data.y,
-            w: data.w,
-            h: data.h
-          }
+          console.log('beforeHovering at time:', data.time);
+          return data;
         },
         onHover: (data) => {
           console.log('Hovering at time:', data.time);
@@ -65,7 +66,12 @@
         }
       });
 
-      console.log('Plugin instance:', snapshot);
+      // Wait for the plugin to be ready
+      instance.ready().then(() => {
+        console.log('Plugin instance is ready:', instance);
+      }).catch(error => {
+        console.error('Error initializing plugin:', error);
+      });
     });
   </script>
 </body>

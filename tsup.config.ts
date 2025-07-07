@@ -6,7 +6,7 @@ export default defineConfig({
   dts: true,
   clean: true,
   minify: true,
-  globalName: 'VideojsVttSnapshot',
+  globalName: 'VttSnapshot',
   external: ['video.js'],
   noExternal: ['video.js'],
   platform: 'browser',

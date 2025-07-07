@@ -30,15 +30,16 @@ export class VideojsVttSnapshot {
   private options: VideojsVttSnapshotOptions;
   private cues: VTTCue[] = [];
   private snapshotElement: HTMLElement | null = null;
+  private initPromise: Promise<void>;
 
   constructor(player: Player, options: VideojsVttSnapshotOptions) {
     this.player = player;
-    this.options = {
-      snapshotClass: 'vjs-vtt-snapshot',
-      ...options
-    };
+    this.options = options;
+    this.initPromise = this.initialize();
+  }
 
-    this.initialize();
+  public async ready(): Promise<void> {
+    return this.initPromise;
   }
 
   private async initialize(): Promise<void> {
@@ -81,6 +82,7 @@ export class VideojsVttSnapshot {
       this.initializeEventListeners();
     } catch (error) {
       console.error('Error initializing VTT snapshot:', error);
+      throw error; // Re-throw to be caught by ready()
     }
   }
 
@@ -191,27 +193,20 @@ export class VideojsVttSnapshot {
   private findClosestCue(time: number): VTTCue | null {
     if (!this.cues.length) return null;
 
-    let closestCue = null;
-    let minDistance = Infinity;
+    // Get the total video duration
+    const duration = this.player.duration();
+    if (!duration) return null;
 
-    for (const cue of this.cues) {
-      // First check if time falls within the cue range
-      if (time >= cue.startTime && time <= cue.endTime) {
-        return cue;
-      }
+    // Calculate the segment size (duration / number of cues)
+    const segmentSize = duration / this.cues.length;
 
-      // If not within range, find the closest edge
-      const distanceToStart = Math.abs(time - cue.startTime);
-      const distanceToEnd = Math.abs(time - cue.endTime);
-      const distance = Math.min(distanceToStart, distanceToEnd);
+    // Find which segment the time falls into
+    const segmentIndex = Math.min(
+      Math.floor(time / segmentSize),
+      this.cues.length - 1
+    );
 
-      if (distance < minDistance) {
-        minDistance = distance;
-        closestCue = cue;
-      }
-    }
-
-    return closestCue;
+    return this.cues[segmentIndex];
   }
 
   private handleMouseLeave(): void {

@@ -7,15 +7,16 @@
   "types": "dist/index.d.ts",
   "type": "module",
   "files": [
-    "dist",
-    "src"
+    "dist"
   ],
   "scripts": {
     "build": "tsup",
     "dev": "concurrently \"tsup --watch\" \"node example/server.js\"",
     "lint": "eslint src",
     "prepare": "pnpm build",
-    "example": "pnpm build && node example/server.js"
+    "example": "pnpm build && node example/server.js",
+    "test": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "keywords": [
     "videojs",
@@ -35,12 +36,15 @@
     "@types/video.js": "^7.3.58",
     "@typescript-eslint/eslint-plugin": "^8.35.1",
     "@typescript-eslint/parser": "^8.35.1",
+    "@vitest/coverage-v8": "^1.4.0",
     "concurrently": "^8.2.2",
     "eslint": "^9.30.1",
     "express": "^5.1.0",
+    "happy-dom": "^13.9.0",
     "ts-node": "^10.9.2",
     "tsup": "^8.5.0",
     "typescript": "^5.8.3",
-    "video.js": "^8.23.3"
+    "video.js": "^8.23.3",
+    "vitest": "^1.4.0"
   }
 }

@@ -1,22 +1,55 @@
 // Use the global videojs instance
-declare const videojs: any;
+import videojs from 'video.js';
 
 import type Player from 'video.js/dist/types/player';
 import { VideojsVttSnapshot } from './videojs-vtt-snapshot';
 import type { VideojsVttSnapshotOptions } from './interface';
 
-// Register the plugin with Video.js
-const registerPlugin = videojs.registerPlugin || videojs.plugin;
+// Create a plugin class that extends Video.js's base plugin
+class VttSnapshotPlugin {
+  private player: Player;
+  private instance: VideojsVttSnapshot;
 
-// Register the plugin
-function vttSnapshotPlugin(this: Player, options: VideojsVttSnapshotOptions) {
-  const instance = new VideojsVttSnapshot(this, options);
-  (this as any).vttSnapshot = instance;
-  return instance;
+  constructor(player: Player, options: VideojsVttSnapshotOptions) {
+    this.player = player;
+    this.instance = new VideojsVttSnapshot(player, options);
+  }
+
+  ready() {
+    return this.instance.ready();
+  }
+
+  dispose() {
+    if (this.instance) {
+      this.instance.dispose();
+    }
+  }
 }
 
+// Get the plugin registration function
+const registerPlugin = videojs.registerPlugin || (videojs as any).plugin;
+
+// Plugin registration function
+function vttSnapshotPlugin(this: Player, options: VideojsVttSnapshotOptions) {
+  return new VttSnapshotPlugin(this, options);
+}
+
+// Register the plugin with Video.js
 registerPlugin('vttSnapshot', vttSnapshotPlugin);
 
-// Export types and class
-export * from './interface';
+// Handle browser environment
+declare global {
+  interface Window {
+    videojs: any;
+  }
+}
+
+if (typeof window !== 'undefined' && window.videojs) {
+  const videojsInstance = window.videojs;
+  if (!videojsInstance.getPlugin('vttSnapshot')) {
+    videojsInstance.registerPlugin('vttSnapshot', vttSnapshotPlugin);
+  }
+}
+
+export default VttSnapshotPlugin;
 export { VideojsVttSnapshot };
