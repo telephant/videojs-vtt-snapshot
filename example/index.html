@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video.js VTT Snapshot Example</title>
+  <link href="https://unpkg.com/video.js/dist/video-js.css" rel="stylesheet">
+  <style>
+    .custom-thumb {
+      border: 2px solid white;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+    .vjs-vtt-snapshot {
+      position: absolute;
+      background-size: cover;
+      width: 160px;
+      height: 90px;
+      pointer-events: none;
+      z-index: 1;
+    }
+  </style>
+</head>
+<body>
+  <video id="my-video" class="video-js" controls preload="auto" width="640" height="264">
+    <source src="https://matrx-work01.obs.ae-ad-1.g42cloud.com:443/cst-vod-server/12345678/1/81724eb8-b34b-42cd-98fd-b9b864775ce0/b8a32243-70ac-4311-837b-06062944a1f1.mp4?AccessKeyId=3QZDMDFM5AIZJ8NVNT0P&Expires=1767179691&Signature=gjOCLvTQIjtQ6JRGv3MqpmmILrs%3D" type="video/mp4">
+  </video>
+
+  <script src="https://unpkg.com/video.js/dist/video.min.js"></script>
+  <script src="../dist/index.global.js"></script>
+  <script>
+    // Initialize the player
+    const player = videojs('my-video', {
+      controls: true,
+      fluid: true
+    });
+
+    // Wait for the player to be ready
+    player.ready(function() {
+      console.log('Player is ready');
+      console.log('Available plugins:', videojs.getPlugins());
+
+      // Initialize the plugin
+      const snapshot = player.vttSnapshot({
+        vttUrl: './thumbnails.vtt',
+        snapshotClass: 'vjs-vtt-snapshot',
+        snapshotStyle: {
+          border: '2px solid white'
+        },
+        beforeHovering: (data) => {
+          return {
+            time: data.time,
+            src:'https://matrx-work01.obs.ae-ad-1.g42cloud.com:443/cst-vod-server/12345678/1/81724eb8-b34b-42cd-98fd-b9b864775ce0/sprite_001.jpg?AccessKeyId=3QZDMDFM5AIZJ8NVNT0P&Expires=1767179718&Signature=M3VOUbgAlvq0NAoqhT36NUGwCfQ%3D',
+            x: data.x,
+            y: data.y,
+            w: data.w,
+            h: data.h
+          }
+        },
+        onHover: (data) => {
+          console.log('Hovering at time:', data.time);
+        },
+        onLeave: () => {
+          console.log('Mouse left progress bar');
+        }
+      });
+
+      console.log('Plugin instance:', snapshot);
+    });
+  </script>
+</body>
+</html> 

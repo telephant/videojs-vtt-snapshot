@@ -1,0 +1,9 @@
+---
+description: 
+globs: *
+alwaysApply: false
+---
+- use typescript.
+- use pnpm as pacakge manager and use pnpm add ** to intstall pacakge.
+- do not update the verison of any pacakge manually, let pnpm maintain it.
+- comment when only nesseary
