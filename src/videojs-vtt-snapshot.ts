@@ -10,10 +10,12 @@ interface VideoJSProgressControl {
   el: () => HTMLElement;
   on: (event: string, handler: (event: MouseEvent) => void) => void;
   seekBar: VideoJSSeekBar;
+  SeekBar: VideoJSSeekBar;
 }
 
 interface VideoJSControlBar {
   progressControl: VideoJSProgressControl;
+  ProgressControl: VideoJSProgressControl;
 }
 
 interface VTTCue {
@@ -129,10 +131,10 @@ export class VideojsVttSnapshot {
 
   private initializeEventListeners(): void {
     // Add event listeners to progress control
-    const controlBar = (this.player as any).controlBar as VideoJSControlBar;
-    if (!controlBar?.progressControl) return;
+    const controlBar = ((this.player as any).controlBar || (this.player as any).ControlBar) as VideoJSControlBar;
+    const progressControl = controlBar.progressControl || controlBar.ProgressControl;
+    if (!progressControl) return;
 
-    const progressControl = controlBar.progressControl;
     if (!this.isValidProgressControl(progressControl)) return;
 
     progressControl.on('mousemove', this.handleMouseMove.bind(this));
@@ -143,7 +145,7 @@ export class VideojsVttSnapshot {
     return control && 
            typeof control.el === 'function' && 
            typeof control.on === 'function' &&
-           control.seekBar &&
+          (control.seekBar || control.SeekBar) &&
            typeof control.seekBar.calculateDistance === 'function';
   }
 
@@ -166,50 +168,32 @@ export class VideojsVttSnapshot {
   }
 
   private updateSnapshot(): void {
-    // Clear the pending flag
     this.rafPending = null;
-
-    // If there's no last mouse event, return
     if (!this.lastMouseEvent) return;
 
-    const { event, barRect } = this.lastMouseEvent;
-    const controlBar = (this.player as any).controlBar as VideoJSControlBar;
-    if (!controlBar?.progressControl) return;
-
-    const progressControl = controlBar.progressControl;
+    const { event } = this.lastMouseEvent;
+    const progressControl = (this.player as any).controlBar.progressControl as VideoJSProgressControl;
     if (!this.isValidProgressControl(progressControl)) return;
-    
-    // Use seekBar's calculateDistance to get the time directly
-    const seekBar = progressControl.seekBar;
-    const percent = seekBar.calculateDistance(event);
-    const duration = this.player.duration();
-    const mouseTime = duration * percent;
-    
-    // Find the closest cue
-    const closestCue = this.findClosestCue(mouseTime);
-    
-    if (closestCue) {
-      const [src, coords] = this.parseVttCue(closestCue);
-      let data: SnapshotData = {
-        time: mouseTime,
-        src,
-        ...coords
-      };
 
-      // Call beforeHovering callback and use its return value if provided
+    const barRect = progressControl.el().getBoundingClientRect();
+
+    const seekBar = (progressControl.seekBar || progressControl.SeekBar);
+    const percent = seekBar.calculateDistance(event);
+    const mouseTime = this.player.duration() * percent;
+
+    const cue = this.findClosestCue(mouseTime);
+    if (cue) {
+      const [src, coords] = this.parseVttCue(cue);
+      let data: SnapshotData = { time: mouseTime, src, ...coords };
+
       if (this.options.beforeHovering) {
-        const modifiedData = this.options.beforeHovering(data);
-        if (modifiedData) {
-          data = modifiedData;
-        }
+        const modified = this.options.beforeHovering(data);
+        if (modified) data = modified;
       }
 
       this.showSnapshot(data, event, barRect);
 
-      // Call onHover callback if provided
-      if (this.options.onHover) {
-        this.options.onHover(data);
-      }
+      if (this.options.onHover) this.options.onHover(data);
     } else {
       this.hideSnapshot();
     }
@@ -282,7 +266,7 @@ export class VideojsVttSnapshot {
       display: 'block',
       position: 'absolute',
       left: `${centerX}px`,
-      bottom: `${barRect.height + 10}px`, // 10px above the progress bar
+      bottom: `${barRect.height + 40}px`, // 10px above the progress bar
       width: `${data.w}px`,
       height: `${data.h}px`,
       backgroundImage: `url(${data.src})`,

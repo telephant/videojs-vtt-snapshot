@@ -1,6 +1,6 @@
 {
   "name": "videojs-vtt-snapshot",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Video.js plugin for displaying thumbnails from VTT files when hovering over the progress bar",
   "main": "dist/index.js",
   "module": "dist/index.js",

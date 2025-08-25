@@ -15,4 +15,16 @@ export default defineConfig([
     target: 'es2015',
     sourcemap: !isProduction
   },
+  {
+    entry: ['src/index.ts'],
+    format: ['iife'],
+    name: 'VideojsVttSnapshot', // 全局变量名
+    dts: false,
+    clean: false, // 保留上一个 build
+    minify: isProduction,
+    external: ['video.js'],
+    platform: 'browser',
+    target: 'es2015',
+    sourcemap: !isProduction
+  }
 ]); 
