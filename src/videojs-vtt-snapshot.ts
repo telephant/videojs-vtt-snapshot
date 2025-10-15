@@ -46,6 +46,12 @@ export class VideojsVttSnapshot {
     return this.initPromise;
   }
 
+  private get progressControl() {
+    const controlBar = ((this.player as any).controlBar || (this.player as any).ControlBar) as VideoJSControlBar;
+    const progressControl = controlBar.progressControl || controlBar.ProgressControl;
+    return progressControl;
+  }
+
   private async initialize(): Promise<void> {
     try {
       // Fetch and parse VTT file
@@ -131,32 +137,29 @@ export class VideojsVttSnapshot {
 
   private initializeEventListeners(): void {
     // Add event listeners to progress control
-    const controlBar = ((this.player as any).controlBar || (this.player as any).ControlBar) as VideoJSControlBar;
-    const progressControl = controlBar.progressControl || controlBar.ProgressControl;
-    if (!progressControl) return;
+    if (!this.progressControl) return;
 
-    if (!this.isValidProgressControl(progressControl)) return;
+    if (!this.isValidProgressControl(this.progressControl)) return;
 
-    progressControl.on('mousemove', this.handleMouseMove.bind(this));
-    progressControl.on('mouseleave', this.handleMouseLeave.bind(this));
+    this.progressControl.on('mousemove', this.handleMouseMove.bind(this));
+    this.progressControl.on('mouseleave', this.handleMouseLeave.bind(this));
   }
 
   private isValidProgressControl(control: any): control is VideoJSProgressControl {
+    const seekBar = control.seekBar || control.SeekBar;
     return control && 
-           typeof control.el === 'function' && 
-           typeof control.on === 'function' &&
-          (control.seekBar || control.SeekBar) &&
-           typeof control.seekBar.calculateDistance === 'function';
+            typeof control.el === 'function' && 
+            typeof control.on === 'function' &&
+            seekBar &&
+            typeof seekBar.calculateDistance === 'function';
   }
 
   private handleMouseMove(event: MouseEvent): void {
-    const controlBar = (this.player as any).controlBar as VideoJSControlBar;
-    if (!controlBar?.progressControl) return;
+    if (!this.progressControl) return;
 
-    const progressControl = controlBar.progressControl;
-    if (!this.isValidProgressControl(progressControl)) return;
+    if (!this.isValidProgressControl(this.progressControl)) return;
 
-    const barRect = progressControl.el().getBoundingClientRect();
+    const barRect = this.progressControl.el().getBoundingClientRect();
     
     // Store the latest mouse event
     this.lastMouseEvent = { event, barRect };
@@ -172,12 +175,11 @@ export class VideojsVttSnapshot {
     if (!this.lastMouseEvent) return;
 
     const { event } = this.lastMouseEvent;
-    const progressControl = (this.player as any).controlBar.progressControl as VideoJSProgressControl;
-    if (!this.isValidProgressControl(progressControl)) return;
+    if (!this.isValidProgressControl(this.progressControl)) return;
 
-    const barRect = progressControl.el().getBoundingClientRect();
+    const barRect = this.progressControl.el().getBoundingClientRect();
 
-    const seekBar = (progressControl.seekBar || progressControl.SeekBar);
+    const seekBar = (this.progressControl.seekBar || this.progressControl.SeekBar);
     const percent = seekBar.calculateDistance(event);
     const mouseTime = this.player.duration() * percent;
 
@@ -259,14 +261,26 @@ export class VideojsVttSnapshot {
 
     // Position the snapshot element
     const snapshotRect = this.snapshotElement.getBoundingClientRect();
-    const centerX = event.clientX - snapshotRect.width / 2;
+    let centerX = event.clientX - snapshotRect.width / 2;
+
+    // check the bound of video container.
+    const videoContainer = this.player.el().parentElement;
+    if (videoContainer) {
+      const videoContainerRect = videoContainer.getBoundingClientRect();
+      if (
+        centerX + data.w > videoContainerRect.width
+        || centerX < 0
+      ) {
+        centerX = Math.max(0, Math.min(videoContainerRect.width - data.w, centerX));
+      }
+    }
     
     // Set the position and background
     Object.assign(this.snapshotElement.style, {
       display: 'block',
       position: 'absolute',
       left: `${centerX}px`,
-      bottom: `${barRect.height + 40}px`, // 10px above the progress bar
+      bottom: `${barRect.height + 60}px`, // 10px above the progress bar
       width: `${data.w}px`,
       height: `${data.h}px`,
       backgroundImage: `url(${data.src})`,
